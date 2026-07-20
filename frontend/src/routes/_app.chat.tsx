@@ -195,17 +195,18 @@ function Chat() {
         );
       });
       // Replace optimistic message with the final saved one from backend
-      setLocalMessages((m) => [
-        ...m.filter((x) => x.id !== optimisticUser.id && x.id !== aiMessageId),
-        optimisticUser,
-        reply,
-      ]);
+      setLocalMessages((m) => {
+        const base = m.filter((x) => x && x.id !== optimisticUser.id && x.id !== aiMessageId);
+        return reply ? [...base, optimisticUser, reply] : [...base, optimisticUser];
+      });
       queryClient.invalidateQueries({ queryKey: ["chat-sessions"] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       queryClient.invalidateQueries({ queryKey: ["usage"] });
     } catch (err: unknown) {
       toast.error((err as Error).message ?? "Failed to send message");
-      setLocalMessages((m) => m.filter((x) => x.id !== optimisticUser.id && x.id !== aiMessageId));
+      setLocalMessages((m) =>
+        m.filter((x) => x && x.id !== optimisticUser.id && x.id !== aiMessageId),
+      );
     } finally {
       setSending(false);
     }
@@ -340,7 +341,8 @@ function Chat() {
             </div>
           ) : (
             localMessages.map((m) => {
-              const { thoughtProcess, cleanContent } = parseMessage(m.content);
+              if (!m) return null;
+              const { thoughtProcess, cleanContent } = parseMessage(m.content || "");
               return (
                 <div
                   key={m.id}

@@ -200,6 +200,7 @@ export const api = {
       const decoder = new TextDecoder();
       let done = false;
       let finalMessage = null;
+      let fallbackText = "";
 
       while (!done) {
         const { value, done: doneReading } = await reader.read();
@@ -216,6 +217,7 @@ export const api = {
                 try {
                   const data = JSON.parse(dataStr);
                   if (data.type === "chunk") {
+                    fallbackText += data.text;
                     onChunk(data.text);
                   } else if (data.type === "done") {
                     finalMessage = data.message;
@@ -227,6 +229,14 @@ export const api = {
             }
           }
         }
+      }
+      if (!finalMessage) {
+        finalMessage = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: fallbackText || "Connection completed.",
+          createdAt: new Date().toISOString(),
+        };
       }
       return finalMessage as Message;
     },
